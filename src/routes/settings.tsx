@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
@@ -5,12 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { type DeployEnvelope, getDeployEnvelope } from "@/lib/envelope";
 import { displayNumber, formatFaxNumber } from "@/lib/format";
 import { setSpeakerMuted } from "@/lib/tones";
 import { outgoing, useFaxStore } from "@/lib/store";
 import type { FaxResolution, PaperSize } from "@/lib/types";
 
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
+
+const SEAL_LABEL: Record<string, string> = {
+  SIGNALWIRE_SPACE_URL: "Space",
+  SIGNALWIRE_PROJECT_ID: "Project",
+  SIGNALWIRE_API_TOKEN: "Token",
+  SIGNALWIRE_FROM_NUMBER: "DID",
+};
 
 function SettingsPage() {
   const navigate = useNavigate();
@@ -19,6 +28,13 @@ function SettingsPage() {
   const faxes = useFaxStore((s) => s.faxes);
   const sent = outgoing(faxes);
   const pagesOut = sent.reduce((n, f) => n + (f.pages?.length ?? 0), 0);
+  const [envelope, setEnvelope] = useState<DeployEnvelope | null>(null);
+
+  useEffect(() => {
+    void getDeployEnvelope()
+      .then(setEnvelope)
+      .catch(() => setEnvelope({ state: "local", missing: [] }));
+  }, []);
 
   return (
     <main className="pb-10">
@@ -40,6 +56,8 @@ function SettingsPage() {
             {sent.length} session{sent.length === 1 ? "" : "s"} · {pagesOut} page{pagesOut === 1 ? "" : "s"} out
           </p>
         </div>
+
+        <EnvelopeCard envelope={envelope} />
 
         <div className="space-y-2">
           <Label htmlFor="csid">Station ID (CSID)</Label>
@@ -134,9 +152,9 @@ function SettingsPage() {
         <div className="rounded-xl border border-border bg-bg-elevated p-4">
           <p className="font-mono text-[10px] tracking-[0.22em] text-lcd">HOW THE LINE WORKS</p>
           <p className="mt-2 text-sm leading-relaxed text-fg-muted">
-            This station is live. After RESULT OK, Carbon files the facsimile PDF off the machine — Share
-            when the phone allows it, otherwise the pages download. Receive pulls inbound paper onto
-            the line. Everything stays on this device until you dispatch it.
+            {envelope?.state === "live"
+              ? "The PSTN envelope is armed. After RESULT OK, Carbon hands the pages to SignalWire for T.38 delivery and files a confirmation on this device."
+              : "This station is live on the device. After RESULT OK, Carbon files the facsimile PDF off the machine — Share when the phone allows it, otherwise the pages download. The PSTN envelope on the published station is open and waiting for four seals."}
           </p>
         </div>
 
@@ -161,6 +179,29 @@ function SettingsPage() {
         </Button>
       </section>
     </main>
+  );
+}
+
+function EnvelopeCard({ envelope }: { envelope: DeployEnvelope | null }) {
+  const state = envelope?.state ?? "local";
+  const title = state === "live" ? "ARMED" : state === "open" ? "OPEN" : "LOCAL";
+  const body =
+    state === "live"
+      ? `PSTN line live${envelope?.fromNumber ? ` · ${displayNumber(envelope.fromNumber)}` : ""}${envelope?.space ? ` · ${envelope.space}` : ""}.`
+      : state === "open"
+        ? `Waiting on ${envelope!.missing.map((k) => SEAL_LABEL[k] ?? k).join(", ")}. Replace UNSET on the published station.`
+        : "Device line only. The four SignalWire seals sit on the published station — Space, Project, Token, DID.";
+
+  return (
+    <div className="rounded-xl border border-border bg-bg-elevated p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-mono text-[10px] tracking-[0.22em] text-lcd">DEPLOY ENVELOPE</p>
+        <span className={`font-mono text-[10px] tracking-[0.22em] ${state === "live" ? "text-lcd" : "text-fg-subtle"}`}>
+          {title}
+        </span>
+      </div>
+      <p className="mt-2 text-sm leading-relaxed text-fg-muted">{body}</p>
+    </div>
   );
 }
 
