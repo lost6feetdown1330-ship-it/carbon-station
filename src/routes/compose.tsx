@@ -15,6 +15,9 @@ import { savePageBlob } from "@/lib/idb";
 import { ingestFile } from "@/lib/ingest";
 import { sampleOutgoingLetter } from "@/lib/sample-docs";
 import { useFaxStore } from "@/lib/store";
+import { owns } from "@/lib/catalog";
+import { BuySheet } from "@/components/paywall";
+import type { Sku } from "@/lib/catalog";
 import { BAUD_BY_RESOLUTION, type FaxJob } from "@/lib/types";
 import { createId } from "@/lib/utils";
 
@@ -31,6 +34,8 @@ function Compose() {
   const resetDraft = useFaxStore((s) => s.resetDraft);
   const upsertFax = useFaxStore((s) => s.upsertFax);
   const setLastDialed = useFaxStore((s) => s.setLastDialed);
+  const entitlements = useFaxStore((s) => s.entitlements);
+  const [paySku, setPaySku] = useState<Sku | null>(null);
   const [scanning, setScanning] = useState(false);
   const [sending, setSending] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -114,6 +119,7 @@ function Compose() {
           date: Date.now(),
           urgent: draft.urgent,
           confidential: draft.confidential,
+          style: owns(entitlements, "press") ? draft.coverStyle : "plain",
         });
         const coverId = createId();
         await savePageBlob(coverId, cover.blob);
@@ -140,6 +146,18 @@ function Compose() {
       };
       upsertFax(job);
       setLastDialed(draft.toNumber);
+      if (draft.ccNumber && owns(entitlements, "broadcast") && isDialable(draft.ccNumber)) {
+        const ccId = createId();
+        upsertFax({
+          ...job,
+          id: ccId,
+          status: "queued",
+          toNumber: draft.ccNumber,
+          toName: draft.ccName || draft.toName,
+          createdAt: Date.now(),
+        });
+        toast.success("Second destination queued in Sent.");
+      }
       resetDraft();
       toast.dismiss();
       await navigate({ to: "/send/$jobId", params: { jobId: id } });
@@ -191,6 +209,33 @@ function Compose() {
                 </button>
               ))}
             </div>
+          )}
+          {owns(entitlements, "broadcast") ? (
+            <div className="space-y-2 pt-1">
+              <Label htmlFor="cc">Broadcast to</Label>
+              <Input
+                id="cc"
+                inputMode="tel"
+                placeholder="Second destination (optional)"
+                value={formatFaxNumber(draft.ccNumber ?? "")}
+                onChange={(e) => setDraft({ ccNumber: e.target.value })}
+                className="font-mono"
+              />
+              <Input
+                placeholder="Second recipient"
+                value={draft.ccName ?? ""}
+                onChange={(e) => setDraft({ ccName: e.target.value })}
+              />
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setPaySku("broadcast")}
+              className="flex w-full items-center justify-between rounded-lg border border-dashed border-border px-3 py-2 text-left text-xs text-fg-muted"
+            >
+              <span>Add a second destination</span>
+              <span className="font-mono text-lcd">$4.99</span>
+            </button>
           )}
         </div>
 
@@ -252,10 +297,16 @@ function Compose() {
               <button
                 key={mode}
                 type="button"
-                onClick={() => setDraft({ scanMode: mode })}
+                onClick={() => {
+                  if (mode === "photo" && !owns(entitlements, "photolab")) {
+                    setPaySku("photolab");
+                    return;
+                  }
+                  setDraft({ scanMode: mode });
+                }}
                 className={`rounded-lg border px-2 py-2 text-xs capitalize ${draft.scanMode === mode ? "border-lcd text-lcd" : "border-border text-fg-muted"}`}
               >
-                {mode} mode
+                {mode === "photo" && !owns(entitlements, "photolab") ? "photo · $1.99" : `${mode} mode`}
               </button>
             ))}
           </div>
@@ -304,6 +355,23 @@ function Compose() {
                 Confidential
               </Button>
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              {(["plain", "legal", "medical", "realty", "invoice"] as const).map((style) => {
+                const locked = style !== "plain" && !owns(entitlements, "press");
+                return (
+                  <button
+                    key={style}
+                    type="button"
+                    onClick={() => (locked ? setPaySku("press") : setDraft({ coverStyle: style }))}
+                    className={`rounded-lg border px-2 py-2 text-xs capitalize ${
+                      (draft.coverStyle ?? "plain") === style ? "border-lcd text-lcd" : "border-border text-fg-muted"
+                    }`}
+                  >
+                    {locked ? `${style} · $3.99` : style}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -312,10 +380,16 @@ function Compose() {
             <button
               key={r}
               type="button"
-              onClick={() => setDraft({ resolution: r })}
+              onClick={() => {
+                if (r === "superfine" && !owns(entitlements, "photolab")) {
+                  setPaySku("photolab");
+                  return;
+                }
+                setDraft({ resolution: r });
+              }}
               className={`rounded-lg border px-2 py-2 text-xs capitalize ${draft.resolution === r ? "border-lcd text-lcd" : "border-border text-fg-muted"}`}
             >
-              {r}
+              {r === "superfine" && !owns(entitlements, "photolab") ? "superfine · $1.99" : r}
             </button>
           ))}
         </div>
@@ -358,7 +432,7 @@ function Compose() {
       {scanning && (
         <Scanner
           settings={settings}
-          mode={draft.scanMode}
+          mode={owns(entitlements, "photolab") ? draft.scanMode : "text"}
           header={buildHeaderLine(
             settings,
             draft.pages.length + (draft.includeCover ? 2 : 1),
@@ -371,6 +445,7 @@ function Compose() {
           }}
         />
       )}
+      <BuySheet sku={paySku} open={Boolean(paySku)} onOpenChange={(v) => !v && setPaySku(null)} />
     </main>
   );
 }

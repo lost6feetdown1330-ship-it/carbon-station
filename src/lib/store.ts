@@ -2,7 +2,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { createId } from "@/lib/utils";
 import { deletePageBlob, savePageBlob } from "@/lib/idb";
-import type { ComposeDraft, Contact, FaxJob, FaxPage, StationSettings } from "@/lib/types";
+import type { ComposeDraft, Contact, FaxJob, FaxPage, Purchase, StationSettings } from "@/lib/types";
+import { SKUS, type Sku, productBySku } from "@/lib/catalog";
 import { sampleLegal, sampleMedical, sampleTitleCover } from "@/lib/sample-docs";
 
 const defaultSettings: StationSettings = {
@@ -41,6 +42,8 @@ interface FaxState {
   faxes: FaxJob[];
   lastDialed: string;
   draft: ComposeDraft;
+  entitlements: Partial<Record<Sku, boolean>>;
+  purchases: Purchase[];
   markHydrated: () => void;
   updateSettings: (patch: Partial<StationSettings>) => void;
   setLastDialed: (n: string) => void;
@@ -56,6 +59,7 @@ interface FaxState {
   deleteFax: (id: string) => Promise<void>;
   markRead: (id: string) => void;
   seedIfNeeded: () => Promise<void>;
+  purchase: (sku: Sku) => void;
 }
 
 const seedContacts: Contact[] = [
@@ -110,6 +114,8 @@ export const useFaxStore = create<FaxState>()(
       faxes: [],
       lastDialed: "",
       draft: defaultDraft(defaultSettings),
+      entitlements: {},
+      purchases: [],
       markHydrated: () => set({ hydrated: true }),
       updateSettings: (patch) =>
         set((s) => ({ settings: { ...s.settings, ...patch } })),
@@ -248,6 +254,18 @@ export const useFaxStore = create<FaxState>()(
           settings: { ...get().settings, seeded: true },
         });
       },
+      purchase: (sku) => {
+        const product = productBySku(sku);
+        set((s) => {
+          const entitlements = { ...s.entitlements, [sku]: true };
+          if (sku === "bundle") {
+            for (const key of SKUS) entitlements[key] = true;
+          }
+          for (const extra of product.includes ?? []) entitlements[extra] = true;
+          const row: Purchase = { id: createId(), sku, cents: product.cents, ts: Date.now() };
+          return { entitlements, purchases: [row, ...s.purchases] };
+        });
+      },
     }),
     {
       name: "carbon-station",
@@ -258,6 +276,8 @@ export const useFaxStore = create<FaxState>()(
         faxes: s.faxes,
         lastDialed: s.lastDialed,
         draft: s.draft,
+        entitlements: s.entitlements,
+        purchases: s.purchases,
       }),
     },
   ),

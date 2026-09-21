@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { FileText, PhoneCall, Settings } from "lucide-react";
+import { FileText, PhoneCall, Settings, Store } from "lucide-react";
+import { BuySheet } from "@/components/paywall";
+import { FREE_SPEED_DIAL, owns } from "@/lib/catalog";
 import { DialPad } from "@/components/dial-pad";
 import { LcdPanel } from "@/components/lcd-panel";
 import { Onboarding } from "@/components/onboarding";
@@ -18,7 +20,10 @@ function Home() {
   const draft = useFaxStore((s) => s.draft);
   const setLastDialed = useFaxStore((s) => s.setLastDialed);
   const setDraft = useFaxStore((s) => s.setDraft);
+  const entitlements = useFaxStore((s) => s.entitlements);
   const [number, setNumber] = useState("");
+  const [buy, setBuy] = useState(false);
+  const directoryPro = owns(entitlements, "directory");
 
   const speed = useMemo(
     () =>
@@ -50,9 +55,14 @@ function Home() {
           <p className="font-mono text-[10px] tracking-[0.3em] text-lcd">CARBON</p>
           <h1 className="mt-1 text-xl font-medium tracking-tight">Station</h1>
         </div>
-        <Button variant="ghost" size="icon" aria-label="Settings" onClick={() => void navigate({ to: "/settings" })}>
-          <Settings className="size-5" />
-        </Button>
+        <div className="flex gap-1">
+          <Button variant="ghost" size="icon" aria-label="Store" onClick={() => void navigate({ to: "/shop" })}>
+            <Store className="size-5" />
+          </Button>
+          <Button variant="ghost" size="icon" aria-label="Settings" onClick={() => void navigate({ to: "/settings" })}>
+            <Settings className="size-5" />
+          </Button>
+        </div>
       </div>
 
       <LcdPanel
@@ -81,17 +91,24 @@ function Home() {
         <div className="grid grid-cols-4 gap-2">
           {Array.from({ length: 8 }).map((_, i) => {
             const slot = speed.find((c) => c.speedDial === i + 1);
+            const gated = i + 1 > FREE_SPEED_DIAL && !directoryPro;
             return (
               <button
                 key={i}
                 type="button"
-                disabled={!slot}
-                onClick={() => slot && goCompose(slot.fax, slot.company || slot.name)}
+                disabled={!slot && !gated}
+                onClick={() => {
+                  if (gated && !slot) {
+                    setBuy(true);
+                    return;
+                  }
+                  if (slot) goCompose(slot.fax, slot.company || slot.name);
+                }}
                 className="keycap flex h-14 flex-col items-center justify-center rounded-lg border border-border bg-bg-elevated px-1 text-center disabled:opacity-35"
               >
                 <span className="font-mono text-[10px] text-lcd">{i + 1}</span>
                 <span className="mt-0.5 w-full truncate text-[10px] text-fg-muted">
-                  {slot ? slot.company.split(" ")[0] : "—"}
+                  {slot ? slot.company.split(" ")[0] : gated ? "PRO" : "—"}
                 </span>
               </button>
             );
@@ -124,6 +141,7 @@ function Home() {
           Start
         </Button>
       </div>
+      <BuySheet sku="directory" open={buy} onOpenChange={setBuy} />
     </main>
   );
 }

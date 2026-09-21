@@ -11,6 +11,7 @@ import { savePageBlob } from "@/lib/idb";
 import { getDeployEnvelope } from "@/lib/envelope";
 import { faxToPdf, shareFax } from "@/lib/pdf-export";
 import { carrierResult, dispatchLine, pollLine } from "@/lib/line-client";
+import { owns } from "@/lib/catalog";
 
 import { playCed, playCng, playError, playModemBurst, playSuccess, setSpeakerMuted, unlockAudio } from "@/lib/tones";
 import { BAUD_BY_RESOLUTION, type FaxJob } from "@/lib/types";
@@ -50,6 +51,7 @@ export function TransmitTheater({ job }: { job: FaxJob }) {
   const navigate = useNavigate();
   const patchFax = useFaxStore((s) => s.patchFax);
   const settings = useFaxStore((s) => s.settings);
+  const entitlements = useFaxStore((s) => s.entitlements);
   const [stage, setStage] = useState<Stage>(
     job.status === "sent" ? "done" : job.status === "failed" ? "abort" : "offhook",
   );
@@ -151,21 +153,32 @@ export function TransmitTheater({ job }: { job: FaxJob }) {
           setStage("pstn");
           setCarrierLine("SEIZING CARRIER");
           const pdf = await faxToPdf(job);
-          const dispatched = await dispatchLine(job, pdf);
-          carrier = "pstn";
-          carrierSid = dispatched.sid;
-          patchFax(job.id, { carrier: "pstn", carrierSid: dispatched.sid, fromNumber: dispatched.from || job.fromNumber });
-          setStage("t38");
-          setCarrierLine(dispatched.status.toUpperCase());
-          const deadline = Date.now() + 5 * 60 * 1000;
-          let snapStatus = dispatched.status;
-          while (Date.now() < deadline && !abortRef.current && !cancelled) {
-            const snap = await pollLine(dispatched.sid);
-            snapStatus = snap.status;
-            setCarrierLine(snap.status.replace(/-/g, " ").toUpperCase());
-            if (snap.numPages) setProgress(Math.min(100, (snap.numPages / pageCount) * 100));
-            if (["delivered", "no-answer", "busy", "failed", "canceled"].includes(snap.status)) break;
-            await wait(2000);
+          const attempts = owns(entitlements, "watchdog") ? 3 : 1;
+          let dispatched: { sid: string; from: string; status: string } | null = null;
+          let snapStatus = "queued";
+          for (let attempt = 0; attempt < attempts && !abortRef.current && !cancelled; attempt++) {
+            if (attempt > 0) {
+              setCarrierLine(`REDIAL ${attempt + 1} OF ${attempts}`);
+              await wait(1200);
+            }
+            dispatched = await dispatchLine(job, pdf);
+            carrier = "pstn";
+            carrierSid = dispatched.sid;
+            patchFax(job.id, { carrier: "pstn", carrierSid: dispatched.sid, fromNumber: dispatched.from || job.fromNumber });
+            setStage("t38");
+            setCarrierLine(dispatched.status.toUpperCase());
+            const deadline = Date.now() + 5 * 60 * 1000;
+            snapStatus = dispatched.status;
+            while (Date.now() < deadline && !abortRef.current && !cancelled) {
+              const snap = await pollLine(dispatched.sid);
+              snapStatus = snap.status;
+              setCarrierLine(snap.status.replace(/-/g, " ").toUpperCase());
+              if (snap.numPages) setProgress(Math.min(100, (snap.numPages / pageCount) * 100));
+              if (["delivered", "no-answer", "busy", "failed", "canceled"].includes(snap.status)) break;
+              await wait(2000);
+            }
+            if (snapStatus === "delivered" || snapStatus === "canceled") break;
+            if (!["busy", "no-answer", "failed"].includes(snapStatus)) break;
           }
           const outcome = carrierResult(snapStatus);
           resultCode = outcome.code;
@@ -220,6 +233,8 @@ export function TransmitTheater({ job }: { job: FaxJob }) {
             ecm: job.ecm,
             date: Date.now(),
             stationId: settings.stationId,
+            certified: owns(entitlements, "certified"),
+            certId: (carrierSid || job.id).slice(0, 10).toUpperCase(),
           });
           const id = createId();
           await savePageBlob(id, receipt.blob);

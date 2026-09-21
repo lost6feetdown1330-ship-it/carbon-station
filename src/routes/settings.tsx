@@ -7,6 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { type DeployEnvelope, getDeployEnvelope } from "@/lib/envelope";
+import { owns } from "@/lib/catalog";
+import { BuySheet } from "@/components/paywall";
+import type { Sku } from "@/lib/catalog";
 import { displayNumber, formatFaxNumber } from "@/lib/format";
 import { setSpeakerMuted } from "@/lib/tones";
 import { outgoing, useFaxStore } from "@/lib/store";
@@ -29,6 +32,8 @@ function SettingsPage() {
   const sent = outgoing(faxes);
   const pagesOut = sent.reduce((n, f) => n + (f.pages?.length ?? 0), 0);
   const [envelope, setEnvelope] = useState<DeployEnvelope | null>(null);
+  const entitlements = useFaxStore((s) => s.entitlements);
+  const [paySku, setPaySku] = useState<Sku | null>(null);
 
   useEffect(() => {
     void getDeployEnvelope()
@@ -58,6 +63,18 @@ function SettingsPage() {
         </div>
 
         <EnvelopeCard envelope={envelope} />
+
+        <button
+          type="button"
+          onClick={() => void navigate({ to: "/shop" })}
+          className="flex w-full items-center justify-between rounded-xl border border-border bg-bg-elevated px-4 py-3 text-left"
+        >
+          <div>
+            <p className="font-mono text-[10px] tracking-[0.22em] text-lcd">STATION STORE</p>
+            <p className="mt-1 text-sm">Sending is free. Buy the rest of the desk.</p>
+          </div>
+          <span className="font-mono text-[11px] text-fg-subtle">OPEN</span>
+        </button>
 
         <div className="space-y-2">
           <Label htmlFor="csid">Station ID (CSID)</Label>
@@ -112,10 +129,16 @@ function SettingsPage() {
               <button
                 key={r}
                 type="button"
-                onClick={() => updateSettings({ resolution: r })}
+                onClick={() => {
+                  if (r === "superfine" && !owns(entitlements, "photolab")) {
+                    setPaySku("photolab");
+                    return;
+                  }
+                  updateSettings({ resolution: r });
+                }}
                 className={`rounded-lg border px-2 py-2 text-xs capitalize ${settings.resolution === r ? "border-lcd text-lcd" : "border-border text-fg-muted"}`}
               >
-                {r}
+                {r === "superfine" && !owns(entitlements, "photolab") ? "superfine · $1.99" : r}
               </button>
             ))}
           </div>
@@ -149,6 +172,71 @@ function SettingsPage() {
           onChange={(v) => updateSettings({ confirmationPage: v })}
         />
 
+        {owns(entitlements, "studio") ? (
+          <>
+            <fieldset>
+              <Label>LCD phosphor</Label>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {(["green", "amber", "ice"] as const).map((lcd) => (
+                  <button
+                    key={lcd}
+                    type="button"
+                    onClick={() => updateSettings({ lcd })}
+                    className={`rounded-lg border px-2 py-2 text-xs capitalize ${(settings.lcd ?? "green") === lcd ? "border-lcd text-lcd" : "border-border text-fg-muted"}`}
+                  >
+                    {lcd}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+            <fieldset>
+              <Label>Paper stock</Label>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {(["cream", "white", "greenbar"] as const).map((paperStock) => (
+                  <button
+                    key={paperStock}
+                    type="button"
+                    onClick={() => updateSettings({ paperStock })}
+                    className={`rounded-lg border px-2 py-2 text-xs capitalize ${(settings.paperStock ?? "cream") === paperStock ? "border-lcd text-lcd" : "border-border text-fg-muted"}`}
+                  >
+                    {paperStock}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setPaySku("studio")}
+            className="flex w-full items-center justify-between rounded-xl border border-border bg-bg-elevated px-4 py-3 text-left"
+          >
+            <div>
+              <p className="text-sm font-medium">Studio</p>
+              <p className="text-xs text-fg-muted">Amber and ice LCDs, white stock, greenbar.</p>
+            </div>
+            <span className="font-mono text-[11px] text-lcd">$2.99</span>
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={() => !owns(entitlements, "watchdog") && setPaySku("watchdog")}
+          className="flex w-full items-center justify-between rounded-xl border border-border bg-bg-elevated px-4 py-3 text-left"
+        >
+          <div>
+            <p className="text-sm font-medium">Watchdog</p>
+            <p className="text-xs text-fg-muted">
+              {owns(entitlements, "watchdog")
+                ? "On. Busy and no-answer redial three times."
+                : "Auto-redial busy and no-answer on the carrier."}
+            </p>
+          </div>
+          <span className="font-mono text-[11px] text-lcd">
+            {owns(entitlements, "watchdog") ? "ON" : "$1.99"}
+          </span>
+        </button>
+
         <div className="rounded-xl border border-border bg-bg-elevated p-4">
           <p className="font-mono text-[10px] tracking-[0.22em] text-lcd">HOW THE LINE WORKS</p>
           <p className="mt-2 text-sm leading-relaxed text-fg-muted">
@@ -177,6 +265,7 @@ function SettingsPage() {
         >
           Run setup again
         </Button>
+        <BuySheet sku={paySku} open={Boolean(paySku)} onOpenChange={(v) => !v && setPaySku(null)} />
       </section>
     </main>
   );

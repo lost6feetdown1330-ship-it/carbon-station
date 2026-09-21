@@ -16,6 +16,7 @@ export interface CoverInput {
   date: number;
   urgent?: boolean;
   confidential?: boolean;
+  style?: "plain" | "legal" | "medical" | "realty" | "invoice";
 }
 
 function wrap(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxW: number, lineH: number, maxLines = 8) {
@@ -66,14 +67,25 @@ export async function renderCoverPage(input: CoverInput) {
   const x = 56;
   let y = 88;
 
+  const plate =
+    input.style === "legal"
+      ? { kicker: "LEGAL CORRESPONDENCE", title: "FAX", sub: "PLEADINGS" }
+      : input.style === "medical"
+        ? { kicker: "PROTECTED HEALTH INFO", title: "FAX", sub: "HIPAA" }
+        : input.style === "realty"
+          ? { kicker: "ESCROW TRANSMITTAL", title: "FAX", sub: "TITLE" }
+          : input.style === "invoice"
+            ? { kicker: "ACCOUNTS PAYABLE", title: "FAX", sub: "INVOICE" }
+            : { kicker: "FACSIMILE TRANSMITTAL", title: "FAX", sub: "COVER SHEET" };
+
   ctx.font = "600 13px 'IBM Plex Sans', sans-serif";
-  ctx.fillText("FACSIMILE TRANSMITTAL", x, y);
+  ctx.fillText(plate.kicker, x, y);
   y += 18;
   ctx.font = "500 42px 'IBM Plex Sans', sans-serif";
-  ctx.fillText("FAX", x, y + 28);
+  ctx.fillText(plate.title, x, y + 28);
   ctx.font = "400 14px 'IBM Plex Mono', ui-monospace, monospace";
   ctx.fillStyle = "#5c564e";
-  ctx.fillText("COVER SHEET", x + 118, y + 36);
+  ctx.fillText(plate.sub, x + 118, y + 36);
   ctx.fillStyle = "#1c1917";
 
   y += 78;
@@ -180,6 +192,8 @@ export async function renderReceiptPage(input: {
   ecm: boolean;
   date: number;
   stationId: string;
+  certified?: boolean;
+  certId?: string;
 }) {
   await waitForFonts();
   const paper = PAPER_PX[input.paperSize];
@@ -217,6 +231,9 @@ export async function renderReceiptPage(input: {
     ["STATION", input.stationId],
     ["RESULT", input.result],
   ];
+  if (input.certified) {
+    rows.push(["CERTIFIED", input.certId || "MCF"]);
+  }
   let y = 156;
   ctx.font = "500 13px 'IBM Plex Mono', ui-monospace, monospace";
   for (const [k, v] of rows) {

@@ -68,6 +68,30 @@
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
+html[data-lcd="amber"] {
+  --color-lcd: #c4a35a;
+  --color-lcd-dim: #33280f;
+  --color-lcd-deep: #16120a;
+  --color-ring: #c4a35a;
+}
+
+html[data-lcd="ice"] {
+  --color-lcd: #8eb9c4;
+  --color-lcd-dim: #1a2e33;
+  --color-lcd-deep: #0c1416;
+  --color-ring: #8eb9c4;
+}
+
+html[data-paper="white"] {
+  --color-paper: #f7f4ef;
+  --color-paper-shadow: #ece7dc;
+}
+
+html[data-paper="greenbar"] {
+  --color-paper: #e4eee3;
+  --color-paper-shadow: #d3e0d2;
+}
+
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;

@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { displayNumber, digitsOnly, formatFaxNumber } from "@/lib/format";
+import { FREE_CONTACT_CAP, owns } from "@/lib/catalog";
+import { BuySheet } from "@/components/paywall";
 import { useFaxStore } from "@/lib/store";
 import type { Contact } from "@/lib/types";
 import { Users } from "lucide-react";
@@ -26,6 +28,9 @@ function ContactsPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Contact | null>(null);
   const [query, setQuery] = useState("");
+  const [buy, setBuy] = useState(false);
+  const entitlements = useFaxStore((s) => s.entitlements);
+  const pro = owns(entitlements, "directory");
 
   const filtered = contacts
     .filter((c) => {
@@ -39,6 +44,10 @@ function ContactsPage() {
     .sort((a, b) => Number(b.favorite) - Number(a.favorite) || a.company.localeCompare(b.company));
 
   async function importContacts() {
+    if (!pro && contacts.length >= FREE_CONTACT_CAP) {
+      setBuy(true);
+      return;
+    }
     const picker = (
       navigator as Navigator & {
         contacts?: {
@@ -97,6 +106,10 @@ function ContactsPage() {
               variant="outline"
               aria-label="Add contact"
               onClick={() => {
+                if (!pro && contacts.length >= FREE_CONTACT_CAP) {
+                  setBuy(true);
+                  return;
+                }
                 setEditing(null);
                 setOpen(true);
               }}
@@ -171,6 +184,7 @@ function ContactsPage() {
           />
         </SheetContent>
       </Sheet>
+      <BuySheet sku="directory" open={buy} onOpenChange={setBuy} />
     </main>
   );
 }

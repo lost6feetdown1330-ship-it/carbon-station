@@ -1,3 +1,5 @@
+import type { Sku } from "@/lib/catalog";
+
 export type PaperSize = "letter" | "a4" | "legal";
 export type FaxResolution = "standard" | "fine" | "superfine";
 export type FaxDirection = "in" | "out";
@@ -62,6 +64,8 @@ export interface StationSettings {
   onboarded: boolean;
   seeded: boolean;
   acceptedTermsAt?: number;
+  lcd?: "green" | "amber" | "ice";
+  paperStock?: "cream" | "white" | "greenbar";
 }
 
 export interface ComposeDraft {
@@ -77,6 +81,16 @@ export interface ComposeDraft {
   scanMode: ScanMode;
   pages: FaxPage[];
   consented: boolean;
+  coverStyle?: "plain" | "legal" | "medical" | "realty" | "invoice";
+  ccNumber?: string;
+  ccName?: string;
+}
+
+export interface Purchase {
+  id: string;
+  sku: Sku;
+  cents: number;
+  ts: number;
 }
 
 export const PAPER_PX: Record<PaperSize, { w: number; h: number }> = {

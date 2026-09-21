@@ -5,8 +5,10 @@ import { toast } from "sonner";
 import { EmptyState } from "@/components/empty-state";
 import { FaxTray } from "@/components/fax-tray";
 import { PageHeader } from "@/components/app-shell";
+import { BuySheet } from "@/components/paywall";
 import { Scanner } from "@/components/scanner";
 import { Button } from "@/components/ui/button";
+import { owns } from "@/lib/catalog";
 import { buildHeaderLine } from "@/lib/fax-image";
 import { savePageBlob } from "@/lib/idb";
 import { incoming, useFaxStore } from "@/lib/store";
@@ -18,9 +20,12 @@ export const Route = createFileRoute("/inbox")({ component: InboxPage });
 function InboxPage() {
   const faxes = useFaxStore((s) => s.faxes);
   const settings = useFaxStore((s) => s.settings);
+  const entitlements = useFaxStore((s) => s.entitlements);
   const upsertFax = useFaxStore((s) => s.upsertFax);
   const jobs = incoming(faxes);
   const [receiving, setReceiving] = useState(false);
+  const [buy, setBuy] = useState(false);
+  const canAnswer = owns(entitlements, "inbound");
 
   return (
     <main className="flex flex-1 flex-col">
@@ -28,9 +33,13 @@ function InboxPage() {
         kicker="Received"
         title="Inbox"
         action={
-          <Button variant="outline" size="sm" onClick={() => setReceiving(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => (canAnswer ? setReceiving(true) : setBuy(true))}
+          >
             <Plus />
-            Receive
+            {canAnswer ? "Receive" : "Answer · $8.99"}
           </Button>
         }
       />
@@ -83,6 +92,7 @@ function InboxPage() {
           }}
         />
       )}
+      <BuySheet sku="inbound" open={buy} onOpenChange={setBuy} />
     </main>
   );
 }
