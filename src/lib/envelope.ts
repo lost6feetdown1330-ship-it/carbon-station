@@ -48,10 +48,10 @@ export const getDeployEnvelope = createServerFn({ method: "POST" }).handler(
     const host = isSet(space) ? spaceHost(space!) : undefined;
     const fromNumber = isSet(from) ? from : undefined;
     if (missing.length === 0) return { state: "live", space: host, fromNumber, missing: [] };
-    const published = Boolean(env("VERCEL") || env("GROK_PROJECT_ID"));
-    if (published || missing.length < SEALS.length) {
-      return { state: "open", space: host, fromNumber, missing };
-    }
+    // VERCEL is the published station. GROK_PROJECT_ID is also set in this
+    // builder preview, so it must not flip the envelope to OPEN here.
+    const published = Boolean(env("VERCEL"));
+    if (published) return { state: "open", space: host, fromNumber, missing };
     return { state: "local", missing };
   },
 );

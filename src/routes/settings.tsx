@@ -291,8 +291,8 @@ function EnvelopeCard({ envelope }: { envelope: DeployEnvelope | null }) {
     state === "live"
       ? `PSTN line live${envelope?.fromNumber ? ` · ${displayNumber(envelope.fromNumber)}` : ""}${envelope?.space ? ` · ${envelope.space}` : ""}.`
       : state === "open"
-        ? `Waiting on ${envelope!.missing.map((k) => SEAL_LABEL[k] ?? k).join(", ")}. Replace UNSET on the published station.`
-        : "Device line only. The four SignalWire seals sit on the published station — Space, Project, Token, DID.";
+        ? `Waiting on ${envelope!.missing.map((k) => SEAL_LABEL[k] ?? k).join(", ")}. The seals are on the published station — open it after the next publish.`
+        : "This device is local. PSTN keys live on the published station (Space, Project, Token, DID).";
 
   return (
     <div className="rounded-xl border border-border bg-bg-elevated p-4">
