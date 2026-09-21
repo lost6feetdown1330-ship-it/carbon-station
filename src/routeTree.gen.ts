@@ -16,6 +16,7 @@ import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as SentRouteImport } from './routes/sent'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ShopRouteImport } from './routes/shop'
+import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as FaxIdRouteImport } from './routes/fax.$id'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as LegalTermsRouteImport } from './routes/legal.terms'
@@ -58,6 +59,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const ShopRoute = ShopRouteImport.update({
   id: '/shop',
   path: '/shop',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WalletRoute = WalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FaxIdRoute = FaxIdRouteImport.update({
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/sent': typeof SentRoute
   '/settings': typeof SettingsRoute
   '/shop': typeof ShopRoute
+  '/wallet': typeof WalletRoute
   '/fax/$id': typeof FaxIdRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
@@ -126,6 +133,7 @@ export interface FileRoutesByTo {
   '/sent': typeof SentRoute
   '/settings': typeof SettingsRoute
   '/shop': typeof ShopRoute
+  '/wallet': typeof WalletRoute
   '/fax/$id': typeof FaxIdRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
@@ -144,6 +152,7 @@ export interface FileRoutesById {
   '/sent': typeof SentRoute
   '/settings': typeof SettingsRoute
   '/shop': typeof ShopRoute
+  '/wallet': typeof WalletRoute
   '/fax/$id': typeof FaxIdRoute
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
@@ -163,6 +172,7 @@ export interface FileRouteTypes {
     | '/sent'
     | '/settings'
     | '/shop'
+    | '/wallet'
     | '/fax/$id'
     | '/legal/privacy'
     | '/legal/terms'
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
     | '/sent'
     | '/settings'
     | '/shop'
+    | '/wallet'
     | '/fax/$id'
     | '/legal/privacy'
     | '/legal/terms'
@@ -197,6 +208,7 @@ export interface FileRouteTypes {
     | '/sent'
     | '/settings'
     | '/shop'
+    | '/wallet'
     | '/fax/$id'
     | '/legal/privacy'
     | '/legal/terms'
@@ -215,6 +227,7 @@ export interface RootRouteChildren {
   SentRoute: typeof SentRoute
   SettingsRoute: typeof SettingsRoute
   ShopRoute: typeof ShopRoute
+  WalletRoute: typeof WalletRoute
   FaxIdRoute: typeof FaxIdRoute
   LegalPrivacyRoute: typeof LegalPrivacyRoute
   LegalTermsRoute: typeof LegalTermsRoute
@@ -274,6 +287,13 @@ declare module '@tanstack/react-router' {
       path: '/shop'
       fullPath: '/shop'
       preLoaderRoute: typeof ShopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wallet': {
+      id: '/wallet'
+      path: '/wallet'
+      fullPath: '/wallet'
+      preLoaderRoute: typeof WalletRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/fax/$id': {
@@ -343,6 +363,7 @@ const rootRouteChildren: RootRouteChildren = {
   SentRoute: SentRoute,
   SettingsRoute: SettingsRoute,
   ShopRoute: ShopRoute,
+  WalletRoute: WalletRoute,
   FaxIdRoute: FaxIdRoute,
   LegalPrivacyRoute: LegalPrivacyRoute,
   LegalTermsRoute: LegalTermsRoute,

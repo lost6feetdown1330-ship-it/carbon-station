@@ -113,3 +113,13 @@ export function owns(entitlements: Partial<Record<Sku, boolean>> | undefined, sk
   if (entitlements[sku]) return true;
   return false;
 }
+
+export const LOAD_PACKS = [
+  { id: "load-5", cents: 500, name: "Five", blurb: "A small float for one add-on." },
+  { id: "load-10", cents: 1000, name: "Ten", blurb: "Photo lab, watchdog, or studio." },
+  { id: "load-25", cents: 2500, name: "Twenty-five", blurb: "The common desk load." },
+  { id: "load-50", cents: 5000, name: "Fifty", blurb: "Bundle plus a remainder." },
+] as const;
+
+export type LoadId = (typeof LOAD_PACKS)[number]["id"];
+

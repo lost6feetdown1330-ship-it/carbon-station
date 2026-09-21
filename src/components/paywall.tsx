@@ -4,7 +4,7 @@ import { Lock } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { type Sku, formatPrice, owns, productBySku } from "@/lib/catalog";
+import { LOAD_PACKS, type Sku, formatPrice, owns, productBySku } from "@/lib/catalog";
 import { useFaxStore } from "@/lib/store";
 
 export function useOwns(sku: Sku) {
@@ -20,12 +20,17 @@ export function BuySheet({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
+  const navigate = useNavigate();
   const purchase = useFaxStore((s) => s.purchase);
+  const loadWallet = useFaxStore((s) => s.loadWallet);
   const entitlements = useFaxStore((s) => s.entitlements);
+  const walletCents = useFaxStore((s) => s.walletCents);
   const [busy, setBusy] = useState(false);
   if (!sku) return null;
   const product = productBySku(sku);
   const already = owns(entitlements, sku);
+  const short = !already && walletCents < product.cents;
+  const remainder = product.cents - walletCents;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -36,25 +41,68 @@ export function BuySheet({
         </SheetHeader>
         <div className="space-y-4 px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           <p className="text-sm leading-relaxed text-fg-muted">{product.blurb}</p>
-          <p className="font-mono text-2xl tracking-wide text-fg">{formatPrice(product.cents)}</p>
-          <p className="text-xs text-fg-subtle">
-            Sending a facsimile stays free. This unlock lives on this station. No card is taken here — the
-            charge posts to the station ledger.
-          </p>
+          <div className="flex items-end justify-between gap-3">
+            <p className="font-mono text-2xl tracking-wide text-fg">{formatPrice(product.cents)}</p>
+            <p className="font-mono text-[11px] text-fg-subtle">Drawer {formatPrice(walletCents)}</p>
+          </div>
+          {short && (
+            <div className="space-y-2">
+              <p className="text-xs text-fg-muted">
+                Short {formatPrice(remainder)}. Load the drawer, then pay from it.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {(LOAD_PACKS.filter((p) => p.cents >= remainder).slice(0, 2).length
+                  ? LOAD_PACKS.filter((p) => p.cents >= remainder).slice(0, 2)
+                  : [LOAD_PACKS[LOAD_PACKS.length - 1]!]
+                ).map((pack) => (
+                  <button
+                    key={pack.id}
+                    type="button"
+                    className="rounded-lg border border-border px-3 py-2 text-left"
+                    onClick={() => {
+                      loadWallet(pack.cents, `Load ${formatPrice(pack.cents)}`);
+                      toast.success(`${formatPrice(pack.cents)} on the drawer.`);
+                    }}
+                  >
+                    <p className="font-mono text-sm">{formatPrice(pack.cents)}</p>
+                    <p className="text-[10px] text-fg-subtle">Load</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <Button
             className="w-full"
             variant="start"
-            disabled={already || busy}
+            disabled={already || busy || short}
             onClick={() => {
               setBusy(true);
-              purchase(sku);
+              const ok = purchase(sku);
+              setBusy(false);
+              if (!ok) {
+                toast.error("Drawer is short.");
+                return;
+              }
               toast.success(`${product.name} is on the station.`);
               onOpenChange(false);
-              setBusy(false);
             }}
           >
-            {already ? "Already on this station" : `Charge ${formatPrice(product.cents)}`}
+            {already
+              ? "Already on this station"
+              : short
+                ? `Need ${formatPrice(remainder)} more`
+                : `Pay ${formatPrice(product.cents)} from wallet`}
           </Button>
+          <button
+            type="button"
+            className="w-full text-center font-mono text-[11px] tracking-wide text-fg-subtle"
+            onClick={() => {
+              onOpenChange(false);
+              void navigate({ to: "/wallet" });
+            }}
+          >
+            Open wallet
+          </button>
         </div>
       </SheetContent>
     </Sheet>
@@ -62,7 +110,6 @@ export function BuySheet({
 }
 
 export function LockNote({ sku, label }: { sku: Sku; label: string }) {
-  const navigate = useNavigate();
   const owned = useOwns(sku);
   const [open, setOpen] = useState(false);
   if (owned) return null;
@@ -81,13 +128,6 @@ export function LockNote({ sku, label }: { sku: Sku; label: string }) {
         <span className="font-mono text-[11px] text-lcd">{formatPrice(product.cents)}</span>
       </button>
       <BuySheet sku={sku} open={open} onOpenChange={setOpen} />
-      <button
-        type="button"
-        className="sr-only"
-        onClick={() => void navigate({ to: "/shop" })}
-      >
-        Open store
-      </button>
     </>
   );
 }

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { FileText, PhoneCall, Settings, Store } from "lucide-react";
+import { FileText, PhoneCall, Settings, Store, Wallet } from "lucide-react";
 import { BuySheet } from "@/components/paywall";
 import { FREE_SPEED_DIAL, owns } from "@/lib/catalog";
 import { DialPad } from "@/components/dial-pad";
@@ -56,6 +56,9 @@ function Home() {
           <h1 className="mt-1 text-xl font-medium tracking-tight">Station</h1>
         </div>
         <div className="flex gap-1">
+          <Button variant="ghost" size="icon" aria-label="Wallet" onClick={() => void navigate({ to: "/wallet" })}>
+            <Wallet className="size-5" />
+          </Button>
           <Button variant="ghost" size="icon" aria-label="Store" onClick={() => void navigate({ to: "/shop" })}>
             <Store className="size-5" />
           </Button>

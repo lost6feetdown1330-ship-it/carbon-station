@@ -2,8 +2,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { createId } from "@/lib/utils";
 import { deletePageBlob, savePageBlob } from "@/lib/idb";
-import type { ComposeDraft, Contact, FaxJob, FaxPage, Purchase, StationSettings } from "@/lib/types";
-import { SKUS, type Sku, productBySku } from "@/lib/catalog";
+import type { ComposeDraft, Contact, FaxJob, FaxPage, Purchase, StationSettings, WalletEntry } from "@/lib/types";
+import { SKUS, type Sku, owns, productBySku } from "@/lib/catalog";
 import { sampleLegal, sampleMedical, sampleTitleCover } from "@/lib/sample-docs";
 
 const defaultSettings: StationSettings = {
@@ -44,6 +44,8 @@ interface FaxState {
   draft: ComposeDraft;
   entitlements: Partial<Record<Sku, boolean>>;
   purchases: Purchase[];
+  walletCents: number;
+  ledger: WalletEntry[];
   markHydrated: () => void;
   updateSettings: (patch: Partial<StationSettings>) => void;
   setLastDialed: (n: string) => void;
@@ -59,7 +61,8 @@ interface FaxState {
   deleteFax: (id: string) => Promise<void>;
   markRead: (id: string) => void;
   seedIfNeeded: () => Promise<void>;
-  purchase: (sku: Sku) => void;
+  purchase: (sku: Sku) => boolean;
+  loadWallet: (cents: number, label: string) => void;
 }
 
 const seedContacts: Contact[] = [
@@ -116,6 +119,8 @@ export const useFaxStore = create<FaxState>()(
       draft: defaultDraft(defaultSettings),
       entitlements: {},
       purchases: [],
+      walletCents: 0,
+      ledger: [],
       markHydrated: () => set({ hydrated: true }),
       updateSettings: (patch) =>
         set((s) => ({ settings: { ...s.settings, ...patch } })),
@@ -256,6 +261,9 @@ export const useFaxStore = create<FaxState>()(
       },
       purchase: (sku) => {
         const product = productBySku(sku);
+        const state = get();
+        if (owns(state.entitlements, sku)) return false;
+        if (state.walletCents < product.cents) return false;
         set((s) => {
           const entitlements = { ...s.entitlements, [sku]: true };
           if (sku === "bundle") {
@@ -263,7 +271,37 @@ export const useFaxStore = create<FaxState>()(
           }
           for (const extra of product.includes ?? []) entitlements[extra] = true;
           const row: Purchase = { id: createId(), sku, cents: product.cents, ts: Date.now() };
-          return { entitlements, purchases: [row, ...s.purchases] };
+          const entry: WalletEntry = {
+            id: createId(),
+            kind: "spend",
+            cents: product.cents,
+            label: product.name,
+            ts: Date.now(),
+            sku,
+          };
+          return {
+            entitlements,
+            purchases: [row, ...s.purchases],
+            walletCents: s.walletCents - product.cents,
+            ledger: [entry, ...s.ledger],
+          };
+        });
+        return true;
+      },
+      loadWallet: (cents, label) => {
+        if (cents <= 0) return;
+        set((s) => {
+          const entry: WalletEntry = {
+            id: createId(),
+            kind: "load",
+            cents,
+            label,
+            ts: Date.now(),
+          };
+          return {
+            walletCents: s.walletCents + cents,
+            ledger: [entry, ...s.ledger],
+          };
         });
       },
     }),
@@ -278,6 +316,8 @@ export const useFaxStore = create<FaxState>()(
         draft: s.draft,
         entitlements: s.entitlements,
         purchases: s.purchases,
+        walletCents: s.walletCents,
+        ledger: s.ledger,
       }),
     },
   ),

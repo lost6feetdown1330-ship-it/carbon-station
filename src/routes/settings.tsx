@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { type DeployEnvelope, getDeployEnvelope } from "@/lib/envelope";
-import { owns } from "@/lib/catalog";
+import { formatPrice, owns } from "@/lib/catalog";
 import { BuySheet } from "@/components/paywall";
 import type { Sku } from "@/lib/catalog";
 import { displayNumber, formatFaxNumber } from "@/lib/format";
@@ -33,6 +33,7 @@ function SettingsPage() {
   const pagesOut = sent.reduce((n, f) => n + (f.pages?.length ?? 0), 0);
   const [envelope, setEnvelope] = useState<DeployEnvelope | null>(null);
   const entitlements = useFaxStore((s) => s.entitlements);
+  const walletCents = useFaxStore((s) => s.walletCents);
   const [paySku, setPaySku] = useState<Sku | null>(null);
 
   useEffect(() => {
@@ -63,6 +64,18 @@ function SettingsPage() {
         </div>
 
         <EnvelopeCard envelope={envelope} />
+
+        <button
+          type="button"
+          onClick={() => void navigate({ to: "/wallet" })}
+          className="flex w-full items-center justify-between rounded-xl border border-border bg-bg-elevated px-4 py-3 text-left"
+        >
+          <div>
+            <p className="font-mono text-[10px] tracking-[0.22em] text-lcd">WALLET</p>
+            <p className="mt-1 text-sm">Station drawer</p>
+          </div>
+          <span className="font-mono text-sm text-fg">{formatPrice(walletCents)}</span>
+        </button>
 
         <button
           type="button"

@@ -93,6 +93,15 @@ export interface Purchase {
   ts: number;
 }
 
+export interface WalletEntry {
+  id: string;
+  kind: "load" | "spend";
+  cents: number;
+  label: string;
+  ts: number;
+  sku?: Sku;
+}
+
 export const PAPER_PX: Record<PaperSize, { w: number; h: number }> = {
   letter: { w: 816, h: 1056 },
   a4: { w: 794, h: 1123 },

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Check, ChevronLeft } from "lucide-react";
 import { BuySheet } from "@/components/paywall";
+import { WalletCard } from "@/components/wallet-card";
 import { Button } from "@/components/ui/button";
 import { CATALOG, type Sku, formatPrice, owns } from "@/lib/catalog";
 import { useFaxStore } from "@/lib/store";
@@ -27,10 +28,11 @@ function ShopPage() {
       </header>
 
       <section className="mt-5 px-5">
-        <div className="rounded-xl border border-border bg-bg-elevated p-4">
+        <WalletCard />
+        <div className="mt-5 rounded-xl border border-border bg-bg-elevated p-4">
           <p className="font-mono text-[10px] tracking-[0.22em] text-lcd">FREE LINE</p>
           <p className="mt-2 text-sm leading-relaxed text-fg-muted">
-            Scan, dial, and send a Group 3 facsimile at no charge. Everything else on the desk is sold here.
+            Scan, dial, and send a Group 3 facsimile at no charge. Desk unlocks draw from the wallet, never from a send.
           </p>
         </div>
 
