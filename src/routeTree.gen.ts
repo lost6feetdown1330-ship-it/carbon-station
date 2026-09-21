@@ -21,6 +21,7 @@ import { Route as FaxIdRouteImport } from './routes/fax.$id'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as LegalTermsRouteImport } from './routes/legal.terms'
 import { Route as SendJobIdRouteImport } from './routes/send.$jobId'
+import { Route as ApiLineHealthRouteImport } from './routes/api/line.health'
 import { Route as ApiLineSendRouteImport } from './routes/api/line.send'
 import { Route as ApiLineStatusRouteImport } from './routes/api/line.status'
 import { Route as ApiLineFaxSidRouteImport } from './routes/api/line.fax.$sid'
@@ -86,6 +87,11 @@ const SendJobIdRoute = SendJobIdRouteImport.update({
   path: '/send/$jobId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLineHealthRoute = ApiLineHealthRouteImport.update({
+  id: '/api/line/health',
+  path: '/api/line/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiLineSendRoute = ApiLineSendRouteImport.update({
   id: '/api/line/send',
   path: '/api/line/send',
@@ -120,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
   '/send/$jobId': typeof SendJobIdRoute
+  '/api/line/health': typeof ApiLineHealthRoute
   '/api/line/send': typeof ApiLineSendRoute
   '/api/line/status': typeof ApiLineStatusRoute
   '/api/line/fax/$sid': typeof ApiLineFaxSidRoute
@@ -138,6 +145,7 @@ export interface FileRoutesByTo {
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
   '/send/$jobId': typeof SendJobIdRoute
+  '/api/line/health': typeof ApiLineHealthRoute
   '/api/line/send': typeof ApiLineSendRoute
   '/api/line/status': typeof ApiLineStatusRoute
   '/api/line/fax/$sid': typeof ApiLineFaxSidRoute
@@ -157,6 +165,7 @@ export interface FileRoutesById {
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
   '/send/$jobId': typeof SendJobIdRoute
+  '/api/line/health': typeof ApiLineHealthRoute
   '/api/line/send': typeof ApiLineSendRoute
   '/api/line/status': typeof ApiLineStatusRoute
   '/api/line/fax/$sid': typeof ApiLineFaxSidRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/legal/privacy'
     | '/legal/terms'
     | '/send/$jobId'
+    | '/api/line/health'
     | '/api/line/send'
     | '/api/line/status'
     | '/api/line/fax/$sid'
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
     | '/legal/privacy'
     | '/legal/terms'
     | '/send/$jobId'
+    | '/api/line/health'
     | '/api/line/send'
     | '/api/line/status'
     | '/api/line/fax/$sid'
@@ -213,6 +224,7 @@ export interface FileRouteTypes {
     | '/legal/privacy'
     | '/legal/terms'
     | '/send/$jobId'
+    | '/api/line/health'
     | '/api/line/send'
     | '/api/line/status'
     | '/api/line/fax/$sid'
@@ -232,6 +244,7 @@ export interface RootRouteChildren {
   LegalPrivacyRoute: typeof LegalPrivacyRoute
   LegalTermsRoute: typeof LegalTermsRoute
   SendJobIdRoute: typeof SendJobIdRoute
+  ApiLineHealthRoute: typeof ApiLineHealthRoute
   ApiLineSendRoute: typeof ApiLineSendRoute
   ApiLineStatusRoute: typeof ApiLineStatusRoute
   ApiLineFaxSidRoute: typeof ApiLineFaxSidRoute
@@ -324,6 +337,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SendJobIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/line/health': {
+      id: '/api/line/health'
+      path: '/api/line/health'
+      fullPath: '/api/line/health'
+      preLoaderRoute: typeof ApiLineHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/line/send': {
       id: '/api/line/send'
       path: '/api/line/send'
@@ -368,6 +388,7 @@ const rootRouteChildren: RootRouteChildren = {
   LegalPrivacyRoute: LegalPrivacyRoute,
   LegalTermsRoute: LegalTermsRoute,
   SendJobIdRoute: SendJobIdRoute,
+  ApiLineHealthRoute: ApiLineHealthRoute,
   ApiLineSendRoute: ApiLineSendRoute,
   ApiLineStatusRoute: ApiLineStatusRoute,
   ApiLineFaxSidRoute: ApiLineFaxSidRoute,

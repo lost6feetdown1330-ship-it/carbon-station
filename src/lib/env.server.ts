@@ -1,29 +1,29 @@
-import nodeProcess from "node:process";
-
-/**
- * Read server env at runtime. Static bindings keep the SignalWire seals
- * attached to the published function; node:process avoids build-time inlining
- * of the token (sensitive keys are runtime-only).
- */
-const SIGNALWIRE_SPACE_URL = nodeProcess.env.SIGNALWIRE_SPACE_URL;
-const SIGNALWIRE_PROJECT_ID = nodeProcess.env.SIGNALWIRE_PROJECT_ID;
-const SIGNALWIRE_API_TOKEN = nodeProcess.env.SIGNALWIRE_API_TOKEN;
-const SIGNALWIRE_FROM_NUMBER = nodeProcess.env.SIGNALWIRE_FROM_NUMBER;
-const VERCEL = nodeProcess.env.VERCEL;
-const GROK_PROJECT_ID = nodeProcess.env.GROK_PROJECT_ID;
-
-const TABLE: Record<string, string | undefined> = {
-  SIGNALWIRE_SPACE_URL,
-  SIGNALWIRE_PROJECT_ID,
-  SIGNALWIRE_API_TOKEN,
-  SIGNALWIRE_FROM_NUMBER,
-  VERCEL,
-  GROK_PROJECT_ID,
-};
-
 export function env(key: string): string | undefined {
-  const v = (TABLE[key] ?? nodeProcess.env[key])?.trim();
-  return v || undefined;
+  let v: string | undefined;
+  switch (key) {
+    case "SIGNALWIRE_SPACE_URL":
+      v = process.env.SIGNALWIRE_SPACE_URL;
+      break;
+    case "SIGNALWIRE_PROJECT_ID":
+      v = process.env.SIGNALWIRE_PROJECT_ID;
+      break;
+    case "SIGNALWIRE_API_TOKEN":
+      v = process.env.SIGNALWIRE_API_TOKEN;
+      break;
+    case "SIGNALWIRE_FROM_NUMBER":
+      v = process.env.SIGNALWIRE_FROM_NUMBER;
+      break;
+    case "VERCEL":
+      v = process.env.VERCEL;
+      break;
+    case "GROK_PROJECT_ID":
+      v = process.env.GROK_PROJECT_ID;
+      break;
+    default:
+      v = process.env[key];
+  }
+  const t = v?.trim();
+  return t || undefined;
 }
 
 /**
