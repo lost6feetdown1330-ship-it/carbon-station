@@ -8,7 +8,10 @@ import { renderReceiptPage } from "@/lib/cover";
 import { buildHeaderLine } from "@/lib/fax-image";
 import { displayNumber, formatDuration } from "@/lib/format";
 import { savePageBlob } from "@/lib/idb";
-import { shareFax } from "@/lib/pdf-export";
+import { getDeployEnvelope } from "@/lib/envelope";
+import { faxToPdf, shareFax } from "@/lib/pdf-export";
+import { carrierResult, dispatchLine, pollLine } from "@/lib/line-client";
+
 import { playCed, playCng, playError, playModemBurst, playSuccess, setSpeakerMuted, unlockAudio } from "@/lib/tones";
 import { BAUD_BY_RESOLUTION, type FaxJob } from "@/lib/types";
 import { useFaxStore } from "@/lib/store";
@@ -22,6 +25,8 @@ type Stage =
   | "handshake"
   | "training"
   | "page"
+  | "pstn"
+  | "t38"
   | "confirm"
   | "done"
   | "abort";
@@ -34,6 +39,8 @@ const STAGE_COPY: Record<Stage, [string, string]> = {
   handshake: ["T.30 HANDSHAKE", "DIS / DCS"],
   training: ["MODEM TRAIN", "V.17"],
   page: ["SENDING PAGE", ""],
+  pstn: ["PSTN QUEUE", "CARRIER"],
+  t38: ["T.38 SEND", ""],
   confirm: ["MCF RECEIVED", "PAGE OK"],
   done: ["RESULT OK", "ON HOOK"],
   abort: ["USER ABORT", "LINE DROPPED"],
@@ -51,6 +58,8 @@ export function TransmitTheater({ job }: { job: FaxJob }) {
   const abortRef = useRef(false);
   const startRef = useRef(Date.now());
   const [elapsed, setElapsed] = useState(job.durationMs ?? 0);
+  const [carrierLine, setCarrierLine] = useState("");
+  const pstnRef = useRef(false);
 
   const pageCount = job.pages.length || 1;
   const baud = job.baud ?? BAUD_BY_RESOLUTION[job.resolution];
@@ -127,6 +136,73 @@ export function TransmitTheater({ job }: { job: FaxJob }) {
         });
         return;
       }
+
+      let resultCode = "OK";
+      let resultError: string | undefined;
+      let carrier: FaxJob["carrier"] = "local";
+      let carrierSid: string | undefined;
+      let usedPstn = false;
+
+      try {
+        const envelope = await getDeployEnvelope();
+        if (envelope.state === "live" && !abortRef.current) {
+          usedPstn = true;
+          pstnRef.current = true;
+          setStage("pstn");
+          setCarrierLine("SEIZING CARRIER");
+          const pdf = await faxToPdf(job);
+          const dispatched = await dispatchLine(job, pdf);
+          carrier = "pstn";
+          carrierSid = dispatched.sid;
+          patchFax(job.id, { carrier: "pstn", carrierSid: dispatched.sid, fromNumber: dispatched.from || job.fromNumber });
+          setStage("t38");
+          setCarrierLine(dispatched.status.toUpperCase());
+          const deadline = Date.now() + 5 * 60 * 1000;
+          let snapStatus = dispatched.status;
+          while (Date.now() < deadline && !abortRef.current && !cancelled) {
+            const snap = await pollLine(dispatched.sid);
+            snapStatus = snap.status;
+            setCarrierLine(snap.status.replace(/-/g, " ").toUpperCase());
+            if (snap.numPages) setProgress(Math.min(100, (snap.numPages / pageCount) * 100));
+            if (["delivered", "no-answer", "busy", "failed", "canceled"].includes(snap.status)) break;
+            await wait(2000);
+          }
+          const outcome = carrierResult(snapStatus);
+          resultCode = outcome.code;
+          resultError = outcome.error;
+          if (!outcome.ok) {
+            setStage("abort");
+            playError();
+            patchFax(job.id, {
+              status: "failed",
+              resultCode,
+              error: resultError,
+              carrier,
+              carrierSid,
+              completedAt: Date.now(),
+              durationMs: Date.now() - startRef.current,
+            });
+            return;
+          }
+        }
+      } catch (err) {
+        if (usedPstn) {
+          const message = err instanceof Error ? err.message : "Carrier failed";
+          setStage("abort");
+          playError();
+          patchFax(job.id, {
+            status: "failed",
+            resultCode: "FAILED",
+            error: message,
+            carrier: "pstn",
+            carrierSid,
+            completedAt: Date.now(),
+            durationMs: Date.now() - startRef.current,
+          });
+          return;
+        }
+      }
+
       const durationMs = Date.now() - startRef.current;
       let pages = job.pages;
       if (settings.confirmationPage) {
@@ -140,7 +216,7 @@ export function TransmitTheater({ job }: { job: FaxJob }) {
             pages: pageCount,
             durationMs,
             baud,
-            result: "OK",
+            result: resultCode,
             ecm: job.ecm,
             date: Date.now(),
             stationId: settings.stationId,
@@ -156,7 +232,10 @@ export function TransmitTheater({ job }: { job: FaxJob }) {
       playSuccess();
       patchFax(job.id, {
         status: "sent",
-        resultCode: "OK",
+        resultCode,
+        error: resultError,
+        carrier,
+        carrierSid,
         completedAt: Date.now(),
         durationMs,
         baud,
@@ -166,12 +245,16 @@ export function TransmitTheater({ job }: { job: FaxJob }) {
         ...job,
         pages,
         status: "sent",
-        resultCode: "OK",
+        resultCode,
+        carrier,
+        carrierSid,
         completedAt: Date.now(),
         durationMs,
         baud,
       };
-      void shareFax(filed).catch(() => undefined);
+      if (carrier !== "pstn") {
+        void shareFax(filed).catch(() => undefined);
+      }
     })();
 
     return () => {
@@ -186,8 +269,9 @@ export function TransmitTheater({ job }: { job: FaxJob }) {
     const [a, b] = STAGE_COPY[stage];
     if (stage === "dialing") return [a, displayNumber(job.toNumber)] as const;
     if (stage === "page") return [a, `PAGE ${pageIndex + 1} OF ${pageCount}`] as const;
+    if (stage === "pstn" || stage === "t38") return [a, carrierLine || b] as const;
     return [a, b] as const;
-  }, [job.toNumber, pageCount, pageIndex, stage]);
+  }, [carrierLine, job.toNumber, pageCount, pageIndex, stage]);
 
   const currentThumb = job.pages[Math.min(pageIndex, Math.max(0, job.pages.length - 1))]?.thumb;
   const finished = stage === "done" || stage === "abort";
@@ -249,8 +333,10 @@ export function TransmitTheater({ job }: { job: FaxJob }) {
               )}
               <span>
                 {stage === "done"
-                  ? "RESULT OK. Pages dispatched from this station."
-                  : "Line dropped."}
+                  ? job.carrier === "pstn" || pstnRef.current
+                    ? "RESULT OK. Pages on the PSTN."
+                    : "RESULT OK. Pages dispatched from this station."
+                  : job.error || "Line dropped."}
               </span>
             </div>
             {stage === "done" && (

@@ -19,6 +19,10 @@ import { Route as FaxIdRouteImport } from './routes/fax.$id'
 import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as LegalTermsRouteImport } from './routes/legal.terms'
 import { Route as SendJobIdRouteImport } from './routes/send.$jobId'
+import { Route as ApiLineSendRouteImport } from './routes/api/line.send'
+import { Route as ApiLineStatusRouteImport } from './routes/api/line.status'
+import { Route as ApiLineFaxSidRouteImport } from './routes/api/line.fax.$sid'
+import { Route as ApiLineMediaTokenRouteImport } from './routes/api/line.media.$token'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -70,6 +74,26 @@ const SendJobIdRoute = SendJobIdRouteImport.update({
   path: '/send/$jobId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLineSendRoute = ApiLineSendRouteImport.update({
+  id: '/api/line/send',
+  path: '/api/line/send',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLineStatusRoute = ApiLineStatusRouteImport.update({
+  id: '/api/line/status',
+  path: '/api/line/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLineFaxSidRoute = ApiLineFaxSidRouteImport.update({
+  id: '/api/line/fax/$sid',
+  path: '/api/line/fax/$sid',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLineMediaTokenRoute = ApiLineMediaTokenRouteImport.update({
+  id: '/api/line/media/$token',
+  path: '/api/line/media/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -82,6 +106,10 @@ export interface FileRoutesByFullPath {
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
   '/send/$jobId': typeof SendJobIdRoute
+  '/api/line/send': typeof ApiLineSendRoute
+  '/api/line/status': typeof ApiLineStatusRoute
+  '/api/line/fax/$sid': typeof ApiLineFaxSidRoute
+  '/api/line/media/$token': typeof ApiLineMediaTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -94,6 +122,10 @@ export interface FileRoutesByTo {
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
   '/send/$jobId': typeof SendJobIdRoute
+  '/api/line/send': typeof ApiLineSendRoute
+  '/api/line/status': typeof ApiLineStatusRoute
+  '/api/line/fax/$sid': typeof ApiLineFaxSidRoute
+  '/api/line/media/$token': typeof ApiLineMediaTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -107,6 +139,10 @@ export interface FileRoutesById {
   '/legal/privacy': typeof LegalPrivacyRoute
   '/legal/terms': typeof LegalTermsRoute
   '/send/$jobId': typeof SendJobIdRoute
+  '/api/line/send': typeof ApiLineSendRoute
+  '/api/line/status': typeof ApiLineStatusRoute
+  '/api/line/fax/$sid': typeof ApiLineFaxSidRoute
+  '/api/line/media/$token': typeof ApiLineMediaTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -121,6 +157,10 @@ export interface FileRouteTypes {
     | '/legal/privacy'
     | '/legal/terms'
     | '/send/$jobId'
+    | '/api/line/send'
+    | '/api/line/status'
+    | '/api/line/fax/$sid'
+    | '/api/line/media/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -133,6 +173,10 @@ export interface FileRouteTypes {
     | '/legal/privacy'
     | '/legal/terms'
     | '/send/$jobId'
+    | '/api/line/send'
+    | '/api/line/status'
+    | '/api/line/fax/$sid'
+    | '/api/line/media/$token'
   id:
     | '__root__'
     | '/'
@@ -145,6 +189,10 @@ export interface FileRouteTypes {
     | '/legal/privacy'
     | '/legal/terms'
     | '/send/$jobId'
+    | '/api/line/send'
+    | '/api/line/status'
+    | '/api/line/fax/$sid'
+    | '/api/line/media/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -158,6 +206,10 @@ export interface RootRouteChildren {
   LegalPrivacyRoute: typeof LegalPrivacyRoute
   LegalTermsRoute: typeof LegalTermsRoute
   SendJobIdRoute: typeof SendJobIdRoute
+  ApiLineSendRoute: typeof ApiLineSendRoute
+  ApiLineStatusRoute: typeof ApiLineStatusRoute
+  ApiLineFaxSidRoute: typeof ApiLineFaxSidRoute
+  ApiLineMediaTokenRoute: typeof ApiLineMediaTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -232,6 +284,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SendJobIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/line/send': {
+      id: '/api/line/send'
+      path: '/api/line/send'
+      fullPath: '/api/line/send'
+      preLoaderRoute: typeof ApiLineSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/line/status': {
+      id: '/api/line/status'
+      path: '/api/line/status'
+      fullPath: '/api/line/status'
+      preLoaderRoute: typeof ApiLineStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/line/fax/$sid': {
+      id: '/api/line/fax/$sid'
+      path: '/api/line/fax/$sid'
+      fullPath: '/api/line/fax/$sid'
+      preLoaderRoute: typeof ApiLineFaxSidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/line/media/$token': {
+      id: '/api/line/media/$token'
+      path: '/api/line/media/$token'
+      fullPath: '/api/line/media/$token'
+      preLoaderRoute: typeof ApiLineMediaTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -246,6 +326,10 @@ const rootRouteChildren: RootRouteChildren = {
   LegalPrivacyRoute: LegalPrivacyRoute,
   LegalTermsRoute: LegalTermsRoute,
   SendJobIdRoute: SendJobIdRoute,
+  ApiLineSendRoute: ApiLineSendRoute,
+  ApiLineStatusRoute: ApiLineStatusRoute,
+  ApiLineFaxSidRoute: ApiLineFaxSidRoute,
+  ApiLineMediaTokenRoute: ApiLineMediaTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

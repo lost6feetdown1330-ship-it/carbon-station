@@ -38,6 +38,15 @@ export function displayNumber(value: string) {
   return formatFaxNumber(value);
 }
 
+export function toE164(value: string) {
+  const digits = digitsOnly(value);
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  if (value.trim().startsWith("+") && digits.length >= 10) return `+${digits}`;
+  if (digits.length >= 10) return `+${digits}`;
+  throw new Error("Need a full fax number.");
+}
+
 export function formatDuration(ms: number) {
   const total = Math.max(0, Math.round(ms / 1000));
   const m = Math.floor(total / 60);

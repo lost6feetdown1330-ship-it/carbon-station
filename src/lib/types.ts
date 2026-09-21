@@ -34,6 +34,8 @@ export interface FaxJob {
   comments?: string;
   urgent?: boolean;
   confidential?: boolean;
+  carrier?: "pstn" | "local";
+  carrierSid?: string;
 }
 
 export interface Contact {
