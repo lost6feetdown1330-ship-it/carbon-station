@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { LOAD_PACKS, type Sku, formatPrice, owns, productBySku } from "@/lib/catalog";
+import { startPaypalLoad } from "@/lib/paypal-client";
 import { useFaxStore } from "@/lib/store";
 
 export function useOwns(sku: Sku) {
@@ -22,7 +23,6 @@ export function BuySheet({
 }) {
   const navigate = useNavigate();
   const purchase = useFaxStore((s) => s.purchase);
-  const loadWallet = useFaxStore((s) => s.loadWallet);
   const entitlements = useFaxStore((s) => s.entitlements);
   const walletCents = useFaxStore((s) => s.walletCents);
   const [busy, setBusy] = useState(false);
@@ -60,8 +60,18 @@ export function BuySheet({
                     type="button"
                     className="rounded-lg border border-border px-3 py-2 text-left"
                     onClick={() => {
-                      loadWallet(pack.cents, `Load ${formatPrice(pack.cents)}`);
-                      toast.success(`${formatPrice(pack.cents)} on the drawer.`);
+                      setBusy(true);
+                      void startPaypalLoad(pack.cents)
+                        .catch((err) => {
+                          const code = (err as Error & { code?: string }).code;
+                          if (code === "PRACTICE") {
+                            useFaxStore.getState().loadWallet(pack.cents, `Practice · ${formatPrice(pack.cents)}`);
+                            toast.success(`${formatPrice(pack.cents)} on the practice drawer.`);
+                            return;
+                          }
+                          toast.error(err instanceof Error ? err.message : "PayPal would not open.");
+                        })
+                        .finally(() => setBusy(false));
                     }}
                   >
                     <p className="font-mono text-sm">{formatPrice(pack.cents)}</p>

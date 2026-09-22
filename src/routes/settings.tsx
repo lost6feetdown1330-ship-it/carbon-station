@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { type DeployEnvelope, getDeployEnvelope } from "@/lib/envelope";
+import { type DeployEnvelope, getDeployEnvelope, getPayPalEnvelope } from "@/lib/envelope";
 import { formatPrice, owns } from "@/lib/catalog";
 import { BuySheet } from "@/components/paywall";
 import type { Sku } from "@/lib/catalog";
@@ -22,6 +22,8 @@ const SEAL_LABEL: Record<string, string> = {
   SIGNALWIRE_PROJECT_ID: "Project",
   SIGNALWIRE_API_TOKEN: "Token",
   SIGNALWIRE_FROM_NUMBER: "DID",
+  PAYPAL_CLIENT_ID: "Client",
+  PAYPAL_CLIENT_SECRET: "Secret",
 };
 
 function SettingsPage() {
@@ -32,6 +34,7 @@ function SettingsPage() {
   const sent = outgoing(faxes);
   const pagesOut = sent.reduce((n, f) => n + (f.pages?.length ?? 0), 0);
   const [envelope, setEnvelope] = useState<DeployEnvelope | null>(null);
+  const [paypal, setPaypal] = useState<DeployEnvelope | null>(null);
   const entitlements = useFaxStore((s) => s.entitlements);
   const walletCents = useFaxStore((s) => s.walletCents);
   const [paySku, setPaySku] = useState<Sku | null>(null);
@@ -40,6 +43,9 @@ function SettingsPage() {
     void getDeployEnvelope()
       .then(setEnvelope)
       .catch(() => setEnvelope({ state: "local", missing: [] }));
+    void getPayPalEnvelope()
+      .then(setPaypal)
+      .catch(() => setPaypal({ state: "local", missing: [] }));
   }, []);
 
   return (
@@ -64,6 +70,7 @@ function SettingsPage() {
         </div>
 
         <EnvelopeCard envelope={envelope} />
+        <PaypalCard envelope={paypal} />
 
         <button
           type="button"
@@ -298,6 +305,29 @@ function EnvelopeCard({ envelope }: { envelope: DeployEnvelope | null }) {
     <div className="rounded-xl border border-border bg-bg-elevated p-4">
       <div className="flex items-center justify-between gap-3">
         <p className="font-mono text-[10px] tracking-[0.22em] text-lcd">DEPLOY ENVELOPE</p>
+        <span className={`font-mono text-[10px] tracking-[0.22em] ${state === "live" ? "text-lcd" : "text-fg-subtle"}`}>
+          {title}
+        </span>
+      </div>
+      <p className="mt-2 text-sm leading-relaxed text-fg-muted">{body}</p>
+    </div>
+  );
+}
+
+function PaypalCard({ envelope }: { envelope: DeployEnvelope | null }) {
+  const state = envelope?.state ?? "local";
+  const title = state === "live" ? "ARMED" : state === "open" ? "OPEN" : "LOCAL";
+  const body =
+    state === "live"
+      ? "Wallet loads settle to the PayPal account that owns this app. Sending stays free."
+      : state === "open"
+        ? `Waiting on ${envelope!.missing.map((k) => SEAL_LABEL[k] ?? k).join(", ")}. Drop the Client ID and Secret from developer.paypal.com — use the PayPal account that should receive the money.`
+        : "This device is practice. Published loads go through PayPal to your account.";
+
+  return (
+    <div className="rounded-xl border border-border bg-bg-elevated p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-mono text-[10px] tracking-[0.22em] text-lcd">PAYPAL DRAWER</p>
         <span className={`font-mono text-[10px] tracking-[0.22em] ${state === "live" ? "text-lcd" : "text-fg-subtle"}`}>
           {title}
         </span>

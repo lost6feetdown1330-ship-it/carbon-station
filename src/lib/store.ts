@@ -46,6 +46,7 @@ interface FaxState {
   purchases: Purchase[];
   walletCents: number;
   ledger: WalletEntry[];
+  paypalCaptures: string[];
   markHydrated: () => void;
   updateSettings: (patch: Partial<StationSettings>) => void;
   setLastDialed: (n: string) => void;
@@ -62,7 +63,7 @@ interface FaxState {
   markRead: (id: string) => void;
   seedIfNeeded: () => Promise<void>;
   purchase: (sku: Sku) => boolean;
-  loadWallet: (cents: number, label: string) => void;
+  loadWallet: (cents: number, label: string, orderId?: string) => boolean;
 }
 
 const seedContacts: Contact[] = [
@@ -121,6 +122,7 @@ export const useFaxStore = create<FaxState>()(
       purchases: [],
       walletCents: 0,
       ledger: [],
+      paypalCaptures: [],
       markHydrated: () => set({ hydrated: true }),
       updateSettings: (patch) =>
         set((s) => ({ settings: { ...s.settings, ...patch } })),
@@ -288,8 +290,10 @@ export const useFaxStore = create<FaxState>()(
         });
         return true;
       },
-      loadWallet: (cents, label) => {
-        if (cents <= 0) return;
+      loadWallet: (cents, label, orderId) => {
+        if (cents <= 0) return false;
+        const state = get();
+        if (orderId && state.paypalCaptures.includes(orderId)) return false;
         set((s) => {
           const entry: WalletEntry = {
             id: createId(),
@@ -301,8 +305,10 @@ export const useFaxStore = create<FaxState>()(
           return {
             walletCents: s.walletCents + cents,
             ledger: [entry, ...s.ledger],
+            paypalCaptures: orderId ? [orderId, ...s.paypalCaptures] : s.paypalCaptures,
           };
         });
+        return true;
       },
     }),
     {
@@ -318,6 +324,7 @@ export const useFaxStore = create<FaxState>()(
         purchases: s.purchases,
         walletCents: s.walletCents,
         ledger: s.ledger,
+        paypalCaptures: s.paypalCaptures,
       }),
     },
   ),

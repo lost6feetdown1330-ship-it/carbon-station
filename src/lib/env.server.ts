@@ -13,6 +13,15 @@ export function env(key: string): string | undefined {
     case "SIGNALWIRE_FROM_NUMBER":
       v = process.env.SIGNALWIRE_FROM_NUMBER;
       break;
+    case "PAYPAL_CLIENT_ID":
+      v = process.env.PAYPAL_CLIENT_ID;
+      break;
+    case "PAYPAL_CLIENT_SECRET":
+      v = process.env.PAYPAL_CLIENT_SECRET;
+      break;
+    case "PAYPAL_ENV":
+      v = process.env.PAYPAL_ENV;
+      break;
     case "VERCEL":
       v = process.env.VERCEL;
       break;

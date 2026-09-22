@@ -48,10 +48,24 @@ export const getDeployEnvelope = createServerFn({ method: "POST" }).handler(
     const host = isSet(space) ? spaceHost(space!) : undefined;
     const fromNumber = isSet(from) ? from : undefined;
     if (missing.length === 0) return { state: "live", space: host, fromNumber, missing: [] };
-    // VERCEL is the published station. GROK_PROJECT_ID is also set in this
-    // builder preview, so it must not flip the envelope to OPEN here.
     const published = Boolean(env("VERCEL"));
     if (published) return { state: "open", space: host, fromNumber, missing };
+    return { state: "local", missing };
+  },
+);
+
+export const getPayPalEnvelope = createServerFn({ method: "POST" }).handler(
+  async (): Promise<DeployEnvelope> => {
+    const { env } = await import("./env.server");
+    const client = env("PAYPAL_CLIENT_ID");
+    const secret = env("PAYPAL_CLIENT_SECRET");
+    const missing = [
+      ...(!isSet(client) ? ["PAYPAL_CLIENT_ID"] : []),
+      ...(!isSet(secret) ? ["PAYPAL_CLIENT_SECRET"] : []),
+    ];
+    const published = Boolean(env("VERCEL"));
+    if (missing.length === 0) return { state: "live", missing: [] };
+    if (published) return { state: "open", missing };
     return { state: "local", missing };
   },
 );

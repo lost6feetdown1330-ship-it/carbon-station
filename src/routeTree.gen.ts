@@ -24,6 +24,8 @@ import { Route as SendJobIdRouteImport } from './routes/send.$jobId'
 import { Route as ApiLineHealthRouteImport } from './routes/api/line.health'
 import { Route as ApiLineSendRouteImport } from './routes/api/line.send'
 import { Route as ApiLineStatusRouteImport } from './routes/api/line.status'
+import { Route as ApiPaypalCaptureRouteImport } from './routes/api/paypal.capture'
+import { Route as ApiPaypalOrderRouteImport } from './routes/api/paypal.order'
 import { Route as ApiLineFaxSidRouteImport } from './routes/api/line.fax.$sid'
 import { Route as ApiLineMediaTokenRouteImport } from './routes/api/line.media.$token'
 
@@ -102,6 +104,16 @@ const ApiLineStatusRoute = ApiLineStatusRouteImport.update({
   path: '/api/line/status',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPaypalCaptureRoute = ApiPaypalCaptureRouteImport.update({
+  id: '/api/paypal/capture',
+  path: '/api/paypal/capture',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPaypalOrderRoute = ApiPaypalOrderRouteImport.update({
+  id: '/api/paypal/order',
+  path: '/api/paypal/order',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiLineFaxSidRoute = ApiLineFaxSidRouteImport.update({
   id: '/api/line/fax/$sid',
   path: '/api/line/fax/$sid',
@@ -129,6 +141,8 @@ export interface FileRoutesByFullPath {
   '/api/line/health': typeof ApiLineHealthRoute
   '/api/line/send': typeof ApiLineSendRoute
   '/api/line/status': typeof ApiLineStatusRoute
+  '/api/paypal/capture': typeof ApiPaypalCaptureRoute
+  '/api/paypal/order': typeof ApiPaypalOrderRoute
   '/api/line/fax/$sid': typeof ApiLineFaxSidRoute
   '/api/line/media/$token': typeof ApiLineMediaTokenRoute
 }
@@ -148,6 +162,8 @@ export interface FileRoutesByTo {
   '/api/line/health': typeof ApiLineHealthRoute
   '/api/line/send': typeof ApiLineSendRoute
   '/api/line/status': typeof ApiLineStatusRoute
+  '/api/paypal/capture': typeof ApiPaypalCaptureRoute
+  '/api/paypal/order': typeof ApiPaypalOrderRoute
   '/api/line/fax/$sid': typeof ApiLineFaxSidRoute
   '/api/line/media/$token': typeof ApiLineMediaTokenRoute
 }
@@ -168,6 +184,8 @@ export interface FileRoutesById {
   '/api/line/health': typeof ApiLineHealthRoute
   '/api/line/send': typeof ApiLineSendRoute
   '/api/line/status': typeof ApiLineStatusRoute
+  '/api/paypal/capture': typeof ApiPaypalCaptureRoute
+  '/api/paypal/order': typeof ApiPaypalOrderRoute
   '/api/line/fax/$sid': typeof ApiLineFaxSidRoute
   '/api/line/media/$token': typeof ApiLineMediaTokenRoute
 }
@@ -189,6 +207,8 @@ export interface FileRouteTypes {
     | '/api/line/health'
     | '/api/line/send'
     | '/api/line/status'
+    | '/api/paypal/capture'
+    | '/api/paypal/order'
     | '/api/line/fax/$sid'
     | '/api/line/media/$token'
   fileRoutesByTo: FileRoutesByTo
@@ -208,6 +228,8 @@ export interface FileRouteTypes {
     | '/api/line/health'
     | '/api/line/send'
     | '/api/line/status'
+    | '/api/paypal/capture'
+    | '/api/paypal/order'
     | '/api/line/fax/$sid'
     | '/api/line/media/$token'
   id:
@@ -227,6 +249,8 @@ export interface FileRouteTypes {
     | '/api/line/health'
     | '/api/line/send'
     | '/api/line/status'
+    | '/api/paypal/capture'
+    | '/api/paypal/order'
     | '/api/line/fax/$sid'
     | '/api/line/media/$token'
   fileRoutesById: FileRoutesById
@@ -247,6 +271,8 @@ export interface RootRouteChildren {
   ApiLineHealthRoute: typeof ApiLineHealthRoute
   ApiLineSendRoute: typeof ApiLineSendRoute
   ApiLineStatusRoute: typeof ApiLineStatusRoute
+  ApiPaypalCaptureRoute: typeof ApiPaypalCaptureRoute
+  ApiPaypalOrderRoute: typeof ApiPaypalOrderRoute
   ApiLineFaxSidRoute: typeof ApiLineFaxSidRoute
   ApiLineMediaTokenRoute: typeof ApiLineMediaTokenRoute
 }
@@ -358,6 +384,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiLineStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/paypal/capture': {
+      id: '/api/paypal/capture'
+      path: '/api/paypal/capture'
+      fullPath: '/api/paypal/capture'
+      preLoaderRoute: typeof ApiPaypalCaptureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/paypal/order': {
+      id: '/api/paypal/order'
+      path: '/api/paypal/order'
+      fullPath: '/api/paypal/order'
+      preLoaderRoute: typeof ApiPaypalOrderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/line/fax/$sid': {
       id: '/api/line/fax/$sid'
       path: '/api/line/fax/$sid'
@@ -391,6 +431,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiLineHealthRoute: ApiLineHealthRoute,
   ApiLineSendRoute: ApiLineSendRoute,
   ApiLineStatusRoute: ApiLineStatusRoute,
+  ApiPaypalCaptureRoute: ApiPaypalCaptureRoute,
+  ApiPaypalOrderRoute: ApiPaypalOrderRoute,
   ApiLineFaxSidRoute: ApiLineFaxSidRoute,
   ApiLineMediaTokenRoute: ApiLineMediaTokenRoute,
 }
